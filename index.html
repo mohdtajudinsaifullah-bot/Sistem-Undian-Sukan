@@ -239,18 +239,11 @@
 
     let isAdmin = false;
     let teams = ["Merah", "Biru", "Hijau", "Kuning"];
-    let sports = [
-      { id: "s1", name: "Menembak", groupCount: 1 },
-      { id: "s2", name: "Golf", groupCount: 1 },
-      { id: "s3", name: "Memanah Lelaki", groupCount: 1 },
-      { id: "s4", name: "Memanah Wanita", groupCount: 1 },
-      { id: "s5", name: "Bowling Lelaki", groupCount: 1 },
-      { id: "s6", name: "Bowling Wanita", groupCount: 1 }
-    ];
+    let sports = [];
     let tournamentDraws = {};
 
-    document.addEventListener("DOMContentLoaded", () => {
-      // Semak jika pernah login dalam browser ini
+    document.addEventListener("DOMContentLoaded", async () => {
+      // 1. Semak sesi log masuk urusetia
       const savedEmail = localStorage.getItem("jksm_admin_email");
       if (savedEmail) {
         checkAdminBackend(savedEmail, false);
@@ -259,15 +252,54 @@
       }
 
       renderTeams();
-      renderSports();
-      renderActiveSportDropdown();
-      
-      // Ambil data pertama kali & jalankan auto-sync setiap 4 saat untuk atlet
-      tarikDataTerkini();
+
+      // 2. Tarik senarai acara rasmi dari Sheet "Acara"
+      await tarikAcaraDariSheets();
+
+      // 3. Tarik keputusan undian dari Sheet "Keputusan"
+      await tarikDataTerkini();
       setInterval(tarikDataTerkini, 4000);
     });
 
-    // --- SISTEM LOGIN & KEBENARAN ---
+    // --- FUNGSI AMBIL & SIMPAN ACARA KE GOOGLE SHEETS ---
+    async function tarikAcaraDariSheets() {
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=getSports`);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          sports = data;
+        } else if (sports.length === 0) {
+          // Senarai lalai jika helaian kosong
+          sports = [
+            { id: "s1", name: "Menembak", groupCount: 1 },
+            { id: "s2", name: "Golf", groupCount: 1 },
+            { id: "s3", name: "Memanah Lelaki", groupCount: 1 },
+            { id: "s4", name: "Memanah Wanita", groupCount: 1 },
+            { id: "s5", name: "Bowling Lelaki", groupCount: 1 },
+            { id: "s6", name: "Bowling Wanita", groupCount: 1 }
+          ];
+        }
+      } catch (e) {
+        console.log("Menggunakan senarai acara tempatan.");
+      }
+      renderSports();
+      renderActiveSportDropdown();
+    }
+
+    async function simpanAcaraKeSheets() {
+      try {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "saveSportsList", sports: sports })
+        });
+      } catch (e) {
+        console.error("Gagal simpan acara:", e);
+      }
+    }
+
+    // --- PENGESAHAN URUSETIA ---
     function bukaModalLogin() {
       document.getElementById("loginModal").classList.remove("hidden");
     }
@@ -386,21 +418,27 @@
       `).join("");
     }
 
-    function tambahSukan() {
+    async function tambahSukan() {
       const input = document.getElementById("inputSport");
       const count = parseInt(document.getElementById("selectGroupCount").value);
       const name = input.value.trim();
       if (!name) return;
+
       sports.push({ id: "s_" + Date.now(), name: name, groupCount: count });
       input.value = "";
       renderSports();
       renderActiveSportDropdown();
+      await simpanAcaraKeSheets();
     }
-    function padamSukan(id) {
+
+    async function padamSukan(id) {
+      if (!confirm("Adakah anda ingin memadam acara ini?")) return;
       sports = sports.filter(s => s.id !== id);
       renderSports();
       renderActiveSportDropdown();
+      await simpanAcaraKeSheets();
     }
+
     function renderSports() {
       const container = document.getElementById("sportList");
       document.getElementById("sportCountBadge").textContent = `${sports.length} Sukan`;
@@ -414,6 +452,7 @@
         </div>
       `).join("");
     }
+
     function renderActiveSportDropdown() {
       const select = document.getElementById("selectActiveSport");
       const curr = select.value;
@@ -421,7 +460,7 @@
         sports.map(s => `<option value="${s.name}" ${s.name === curr ? 'selected' : ''}>${s.name}</option>`).join("");
     }
 
-    // --- LOGIK UNDIAN RAWAK ---
+    // --- LOGIK CABUTAN RAWAK ---
     async function mulakanCabutan() {
       if (!isAdmin) return alert("Hanya urusetia dibenarkan membuat undian.");
       const sportName = document.getElementById("selectActiveSport").value;
@@ -501,7 +540,7 @@
       await hantarKeSheets();
     }
 
-    // --- PAPARAN JADUAL KEPUTUSAN ---
+    // --- PAPARAN KEPUTUSAN KUMPULAN ---
     function renderResults() {
       const container = document.getElementById("resultsContainer");
       const sportKeys = Object.keys(tournamentDraws);
@@ -549,7 +588,7 @@
       }).join("");
     }
 
-    // --- INTEGRASI GOOGLE SHEETS (REAL-TIME LIVE) ---
+    // --- INTEGRASI GOOGLE SHEETS UNTUK UNDIAN ---
     async function hantarKeSheets() {
       const sync = document.getElementById("syncText");
       sync.textContent = "Menyimpan ke Sheets...";
@@ -595,7 +634,6 @@
           }
         });
 
-        // Kemaskini jika ada pertambahan
         if (JSON.stringify(newDraws) !== JSON.stringify(tournamentDraws)) {
           tournamentDraws = newDraws;
           renderResults();
@@ -605,7 +643,7 @@
 
     async function padamDataSemua() {
       if (!isAdmin) return;
-      if (!confirm("Adakah anda pasti mahu memadam semua keputusan undian?")) return;
+      if (!confirm("Adakah anda pasti mahu memadam semua keputusan undian? Acara sukan tidak akan terpadam.")) return;
       tournamentDraws = {};
       renderResults();
       await fetch(SCRIPT_URL, {
