@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Undian Kumpulan Sukan (Live)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @keyframes pulse-glow {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); }
+      50% { transform: scale(1.03); box-shadow: 0 0 25px 8px rgba(59, 130, 246, 0.4); }
+    }
+    .slot-rolling {
+      animation: pulse-glow 0.25s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col">
+
+  <!-- Header Rasmi -->
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-xl shadow-lg">
+          <i class="fa-solid fa-trophy text-amber-300"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            Majlis Undian Sukan
+            <span id="badgeMode" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              Mod Urus Setia
+            </span>
+          </h1>
+          <p class="text-xs text-slate-400">Penyegerakan Automatik Google Sheets</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div id="liveSyncIndicator" class="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="syncText">Tersambung ke Google Sheets</span>
+        </div>
+        <button id="btnShareLink" onclick="salinPautanAtlet()" class="text-xs bg-slate-800 hover:bg-slate-700 text-blue-400 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-link"></i> Kongsi Link Atlet
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Kandungan Utama -->
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+    <!-- BAHAGIAN ADMIN (Disembunyikan jika mod ?view=live) -->
+    <div id="adminPanel" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Kolum 1: Pengurusan Pasukan -->
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <h2 class="text-base font-bold text-slate-200 flex items-center justify-between mb-3">
+          <span><i class="fa-solid fa-users text-blue-400 mr-2"></i>Senarai Pasukan</span>
+          <span id="teamCountBadge" class="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">0 Pasukan</span>
+        </h2>
+        
+        <div class="flex gap-2 mb-4">
+          <input id="inputTeam" type="text" placeholder="Cth: Rumah Merah / Kelas 5A" 
+                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+          <button onclick="tambahPasukan()" class="bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 rounded-xl text-sm font-semibold transition">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+
+        <div id="teamList" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
+          <!-- Item Pasukan dipaparkan di sini -->
+        </div>
+      </section>
+
+      <!-- Kolum 2: Pengurusan Acara Sukan -->
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <h2 class="text-base font-bold text-slate-200 flex items-center justify-between mb-3">
+          <span><i class="fa-solid fa-medal text-amber-400 mr-2"></i>Acara Sukan</span>
+          <span id="sportCountBadge" class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">0 Sukan</span>
+        </h2>
+
+        <div class="space-y-2 mb-4">
+          <input id="inputSport" type="text" placeholder="Cth: Futsal Lelaki" 
+                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
+          
+          <div class="flex items-center gap-2">
+            <select id="selectGroupCount" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm flex-1 text-slate-200">
+              <option value="2">2 Kumpulan (A & B)</option>
+              <option value="3">3 Kumpulan (A, B & C)</option>
+              <option value="4">4 Kumpulan (A, B, C & D)</option>
+              <option value="1">1 Kumpulan Sahaja (Liga)</option>
+            </select>
+            <button onclick="tambahSukan()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+              Tambah
+            </button>
+          </div>
+        </div>
+
+        <div id="sportList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <!-- Item Sukan dipaparkan di sini -->
+        </div>
+      </section>
+
+      <!-- Kolum 3: Pentas Undian & Kawalan -->
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-200 flex items-center justify-between mb-3">
+            <span><i class="fa-solid fa-shuffle text-emerald-400 mr-2"></i>Pentas Cabutan</span>
+            <span class="text-xs text-slate-400">Pilih & Undi</span>
+          </h2>
+
+          <div class="mb-4">
+            <label class="block text-xs font-semibold text-slate-400 mb-1">PILIH SUKAN UNTUK DIUNDI:</label>
+            <select id="selectActiveSport" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500">
+              <option value="">-- Tiada Sukan Dipilih --</option>
+            </select>
+          </div>
+
+          <!-- Petak Animasi Pusingan Rawak -->
+          <div id="lotteryBox" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-center my-2 transition-all">
+            <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1" id="drawStatusLabel">Sedia Menjalankan Cabutan</div>
+            <div id="drawDisplay" class="text-xl md:text-2xl font-black text-emerald-400 py-2">-- TEKAN MULA --</div>
+          </div>
+        </div>
+
+        <div class="space-y-2 mt-4">
+          <button id="btnStartDraw" onclick="mulakanCabutan()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-900/30 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-play"></i> Mulakan Cabutan Rawak
+          </button>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="undiSemuaSekaligus()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-semibold border border-slate-700 transition">
+              <i class="fa-solid fa-forward-fast mr-1"></i> Undi Sukan Ini Terus
+            </button>
+            <button onclick="padamDataSemua()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-2 rounded-xl text-xs font-semibold transition">
+              <i class="fa-solid fa-rotate-left mr-1"></i> Reset Undian
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- PAPARAN KEPUTUSAN KUMPULAN (Boleh dilihat oleh Admin & Atlet) -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <div class="flex flex-wrap items-center justify-between pb-4 mb-6 border-b border-slate-800 gap-3">
+        <div>
+          <h2 class="text-xl font-black text-white flex items-center gap-2">
+            <i class="fa-solid fa-clipboard-list text-blue-400"></i>
+            Keputusan Rasmi Kumpulan
+          </h2>
+          <p class="text-xs text-slate-400">Keputusan dikemaskini terus ke Google Sheets secara rasmi.</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="window.print()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2 rounded-xl border border-slate-700 flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-print"></i> Cetak / Simpan PDF
+          </button>
+          <button onclick="hantarManualKeSheets()" id="btnSyncManual" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Simpan ke Sheets
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid Kad Keputusan Sukan -->
+      <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="col-span-full text-center py-12 text-slate-500 text-sm">
+          <i class="fa-solid fa-hourglass-start text-3xl mb-3 text-slate-600"></i>
+          <p>Belum ada cabutan dijalankan atau data sedang dimuatkan...</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="py-4 text-center text-xs text-slate-500 border-t border-slate-800/80">
+    Sistem Undian Sukan &copy; 2026 &bull; Dikuasakan oleh Vercel & Google Sheets
+  </footer>
+
+  <script>
+    // URL Google Apps Script yang anda sediakan
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLzL3VlLMM-OQhUrcMSJVakR1dwKGPhAM_awu_y2k1hBR84bbo-W78-14tBHHFxIaQrQ/exec";
+
+    // Semak jika dibuka dalam mod Atlet/Penonton
+    const urlParams = new URLSearchParams(window.location.search);
+    const isLiveViewer = urlParams.get('view') === 'live';
+
+    // State Data Aplikasi
+    let teams = ["Rumah Merah", "Rumah Biru", "Rumah Hijau", "Rumah Kuning"];
+    let sports = [
+      { id: "s1", name: "Futsal Lelaki", groupCount: 2 },
+      { id: "s2", name: "Bola Jaring Wanita", groupCount: 2 }
+    ];
+    let tournamentDraws = {}; // Format: { "Futsal Lelaki": { "Kumpulan A": ["Rumah Merah"], "Kumpulan B": [] } }
+
+    // Inisialisasi Muka Surat
+    document.addEventListener("DOMContentLoaded", () => {
+      if (isLiveViewer) {
+        document.getElementById("adminPanel").classList.add("hidden");
+        document.getElementById("btnSyncManual").classList.add("hidden");
+        document.getElementById("badgeMode").textContent = "Mod Penonton (Live)";
+        document.getElementById("badgeMode").className = "text-xs px-2.5 py-0.5 rounded-full font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30";
+        
+        // Polling setiap 4 saat untuk atlet
+        tarikDataTerkini();
+        setInterval(tarikDataTerkini, 4000);
+      } else {
+        renderTeams();
+        renderSports();
+        renderActiveSportDropdown();
+        renderResults();
+      }
+    });
+
+    // --- FUNGSI AUDIO KESAN BUNYI (Web Audio API) ---
+    function playBeep(freq = 600, duration = 0.05) {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    // --- PENGURUSAN PASUKAN & SUKAN ---
+    function tambahPasukan() {
+      const input = document.getElementById("inputTeam");
+      const name = input.value.trim();
+      if (!name) return;
+      if (teams.includes(name)) return alert("Pasukan sudah ada dalam senarai!");
+      teams.push(name);
+      input.value = "";
+      renderTeams();
+    }
+
+    function padamPasukan(index) {
+      teams.splice(index, 1);
+      renderTeams();
+    }
+
+    function renderTeams() {
+      const container = document.getElementById("teamList");
+      const badge = document.getElementById("teamCountBadge");
+      badge.textContent = `${teams.length} Pasukan`;
+      container.innerHTML = teams.map((team, idx) => `
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-slate-800 text-slate-200 border border-slate-700">
+          ${team}
+          <button onclick="padamPasukan(${idx})" class="text-slate-400 hover:text-red-400 ml-1"><i class="fa-solid fa-xmark"></i></button>
+        </span>
+      `).join("");
+    }
+
+    function tambahSukan() {
+      const input = document.getElementById("inputSport");
+      const groupSelect = document.getElementById("selectGroupCount");
+      const name = input.value.trim();
+      if (!name) return;
+      
+      const newSport = {
+        id: "s_" + Date.now(),
+        name: name,
+        groupCount: parseInt(groupSelect.value)
+      };
+      sports.push(newSport);
+      input.value = "";
+      renderSports();
+      renderActiveSportDropdown();
+    }
+
+    function padamSukan(id) {
+      sports = sports.filter(s => s.id !== id);
+      renderSports();
+      renderActiveSportDropdown();
+    }
+
+    function renderSports() {
+      const container = document.getElementById("sportList");
+      const badge = document.getElementById("sportCountBadge");
+      badge.textContent = `${sports.length} Sukan`;
+      container.innerHTML = sports.map(sport => `
+        <div class="flex items-center justify-between p-2 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs">
+          <div>
+            <div class="font-bold text-slate-200">${sport.name}</div>
+            <div class="text-[10px] text-slate-400">${sport.groupCount} Kumpulan</div>
+          </div>
+          <button onclick="padamSukan('${sport.id}')" class="text-slate-400 hover:text-red-400 px-2 py-1">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      `).join("");
+    }
+
+    function renderActiveSportDropdown() {
+      const select = document.getElementById("selectActiveSport");
+      select.innerHTML = `<option value="">-- Pilih Sukan --</option>` +
+        sports.map(s => `<option value="${s.name}">${s.name} (${s.groupCount} Kumpulan)</option>`).join("");
+    }
+
+    // --- LOGIK CABUTAN RAWAK (UNDIAN) ---
+    async function mulakanCabutan() {
+      const activeSportName = document.getElementById("selectActiveSport").value;
+      if (!activeSportName) return alert("Sila pilih sukan terlebih dahulu!");
+      if (teams.length < 2) return alert("Sila masukkan sekurang-kurangnya 2 pasukan!");
+
+      const sportObj = sports.find(s => s.name === activeSportName);
+      const groupCount = sportObj ? sportObj.groupCount : 2;
+
+      // Inisialisasi struktur kumpulan jika belum wujud
+      if (!tournamentDraws[activeSportName]) {
+        tournamentDraws[activeSportName] = {};
+        for (let i = 0; i < groupCount; i++) {
+          const groupName = groupCount === 1 ? "Liga Kumpulan" : `Kumpulan ${String.fromCharCode(65 + i)}`;
+          tournamentDraws[activeSportName][groupName] = [];
+        }
+      }
+
+      // Cari pasukan yang belum diundi bagi sukan ini
+      const teamsDrawn = Object.values(tournamentDraws[activeSportName]).flat();
+      const remainingTeams = teams.filter(t => !teamsDrawn.includes(t));
+
+      if (remainingTeams.length === 0) {
+        alert(`Semua pasukan telah lengkap diundi untuk sukan ${activeSportName}!`);
+        return;
+      }
+
+      // Tentukan giliran kumpulan (paling sedikit pasukan)
+      const groupKeys = Object.keys(tournamentDraws[activeSportName]);
+      groupKeys.sort((a, b) => tournamentDraws[activeSportName][a].length - tournamentDraws[activeSportName][b].length);
+      const targetGroup = groupKeys[0];
+
+      // Animasi Shuffle Suspense
+      const box = document.getElementById("lotteryBox");
+      const label = document.getElementById("drawStatusLabel");
+      const display = document.getElementById("drawDisplay");
+      const btn = document.getElementById("btnStartDraw");
+
+      btn.disabled = true;
+      box.classList.add("slot-rolling", "border-blue-500");
+      label.textContent = `Sedang mencabut untuk: ${targetGroup}...`;
+
+      let counter = 0;
+      const interval = setInterval(() => {
+        playBeep(450 + (counter % 5) * 50, 0.04);
+        display.textContent = remainingTeams[Math.floor(Math.random() * remainingTeams.length)];
+        counter++;
+      }, 70);
+
+      setTimeout(async () => {
+        clearInterval(interval);
+        box.classList.remove("slot-rolling", "border-blue-500");
+
+        // Pilih satu pasukan secara rawak tulen
+        const chosenIndex = Math.floor(Math.random() * remainingTeams.length);
+        const chosenTeam = remainingTeams[chosenIndex];
+
+        tournamentDraws[activeSportName][targetGroup].push(chosenTeam);
+        display.textContent = `🎯 ${chosenTeam}`;
+        label.textContent = `Dimasukkan ke ${targetGroup}!`;
+        playBeep(900, 0.25);
+
+        renderResults();
+        await hantarManualKeSheets(); // Hantar terus ke Google Sheets
+        btn.disabled = false;
+      }, 2000);
+    }
+
+    async function undiSemuaSekaligus() {
+      const activeSportName = document.getElementById("selectActiveSport").value;
+      if (!activeSportName) return alert("Pilih sukan dahulu!");
+      if (teams.length < 2) return alert("Masukkan sekurang-kurangnya 2 pasukan!");
+
+      const sportObj = sports.find(s => s.name === activeSportName);
+      const groupCount = sportObj ? sportObj.groupCount : 2;
+
+      tournamentDraws[activeSportName] = {};
+      for (let i = 0; i < groupCount; i++) {
+        const groupName = groupCount === 1 ? "Liga Kumpulan" : `Kumpulan ${String.fromCharCode(65 + i)}`;
+        tournamentDraws[activeSportName][groupName] = [];
+      }
+
+      // Kocok senarai pasukan secara rawak (Fisher-Yates Shuffle)
+      const shuffled = [...teams].sort(() => Math.random() - 0.5);
+      const groupKeys = Object.keys(tournamentDraws[activeSportName]);
+
+      shuffled.forEach((team, index) => {
+        const groupKey = groupKeys[index % groupKeys.length];
+        tournamentDraws[activeSportName][groupKey].push(team);
+      });
+
+      renderResults();
+      await hantarManualKeSheets();
+      alert(`Undian selesai untuk ${activeSportName}!`);
+    }
+
+    // --- PAPARAN KEPUTUSAN KUMPULAN ---
+    function renderResults() {
+      const container = document.getElementById("resultsContainer");
+      const sportKeys = Object.keys(tournamentDraws);
+
+      if (sportKeys.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-12 text-slate-500 text-sm">
+            <i class="fa-solid fa-hourglass-start text-3xl mb-3 text-slate-600"></i>
+            <p>Belum ada cabutan undian dijalankan.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = sportKeys.map(sportName => {
+        const groups = tournamentDraws[sportName];
+        return `
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+            <div>
+              <div class="text-sm font-black text-amber-400 mb-3 uppercase tracking-wider flex items-center justify-between border-b border-slate-800 pb-2">
+                <span><i class="fa-solid fa-trophy mr-1.5 text-xs"></i> ${sportName}</span>
+              </div>
+              <div class="space-y-4">
+                ${Object.keys(groups).map(grp => `
+                  <div>
+                    <div class="text-xs font-bold text-slate-400 mb-1.5 flex items-center justify-between">
+                      <span>${grp}</span>
+                      <span class="text-[10px] text-slate-500">${groups[grp].length} Pasukan</span>
+                    </div>
+                    <ul class="space-y-1">
+                      ${groups[grp].length === 0 ? `<li class="text-xs text-slate-600 italic px-2">Belum ada pasukan</li>` : ''}
+                      ${groups[grp].map((tm, idx) => `
+                        <li class="flex items-center gap-2 text-xs bg-slate-900 border border-slate-800/80 px-3 py-1.5 rounded-lg text-slate-200">
+                          <span class="w-4 text-center font-bold text-blue-400">${idx + 1}.</span>
+                          <span class="font-medium">${tm}</span>
+                        </li>
+                      `).join("")}
+                    </ul>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // --- INTEGRASI GOOGLE APPS SCRIPT (SAVE & FETCH) ---
+    async function hantarManualKeSheets() {
+      const syncStatus = document.getElementById("syncText");
+      syncStatus.textContent = "Menyimpan ke Google Sheets...";
+      
+      const flattenedResults = [];
+      Object.keys(tournamentDraws).forEach(sport => {
+        Object.keys(tournamentDraws[sport]).forEach(grp => {
+          tournamentDraws[sport][grp].forEach(team => {
+            flattenedResults.push({ sport: sport, group: grp, team: team });
+          });
+        });
+      });
+
+      try {
+        // Reset dahulu data lama dalam sheet, kemudian simpan senarai terkini
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "reset" })
+        });
+
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "saveResults", results: flattenedResults })
+        });
+
+        syncStatus.textContent = "Disimpan ke Google Sheets";
+      } catch (err) {
+        syncStatus.textContent = "Ralat sambungan Sheets";
+      }
+    }
+
+    async function tarikDataTerkini() {
+      const syncStatus = document.getElementById("syncText");
+      try {
+        const res = await fetch(SCRIPT_URL);
+        const data = await res.json();
+        
+        // Bina semula struktur tournamentDraws daripada rekod sheet
+        const newDraws = {};
+        data.forEach(item => {
+          if (!newDraws[item.sport]) newDraws[item.sport] = {};
+          if (!newDraws[item.sport][item.group]) newDraws[item.sport][item.group] = [];
+          if (!newDraws[item.sport][item.group].includes(item.team)) {
+            newDraws[item.sport][item.group].push(item.team);
+          }
+        });
+
+        tournamentDraws = newDraws;
+        renderResults();
+        syncStatus.textContent = "Data terkini (Live)";
+      } catch (e) {
+        syncStatus.textContent = "Menunggu data...";
+      }
+    }
+
+    async function padamDataSemua() {
+      if (!confirm("Adakah anda pasti mahu memadam semua keputusan undian ini?")) return;
+      tournamentDraws = {};
+      renderResults();
+      try {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "reset" })
+        });
+      } catch (e) {}
+    }
+
+    function salinPautanAtlet() {
+      const baseUrl = window.location.origin + window.location.pathname;
+      const liveUrl = `${baseUrl}?view=live`;
+      navigator.clipboard.writeText(liveUrl);
+      alert(`Pautan Atlet Berjaya Disalin!\n\n${liveUrl}\n\nKongsi pautan ini kepada atlet untuk mereka tonton secara langsung.`);
+    }
+  </script>
+</body>
+</html>
