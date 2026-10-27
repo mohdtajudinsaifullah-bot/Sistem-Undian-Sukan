@@ -74,7 +74,7 @@
     </div>
   </header>
 
-  <!-- Kandungan Utama (Dilebarkan untuk menampung grid acara) -->
+  <!-- Kandungan Utama -->
   <main class="max-w-[96%] mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
     <!-- 1. DUA PANEL URUSETIA -->
@@ -173,7 +173,7 @@
 
       <div id="adminResetWrap" class="hidden text-right mt-3">
         <button onclick="padamDataSemua()" class="text-xs text-red-400 hover:text-red-300 underline">
-          <i class="fa-solid fa-rotate-left mr-1"></i> Reset / Padam Keputusan Semasa
+          <i class="fa-solid fa-rotate-left mr-1"></i> Reset / Padam Keseluruhan Keputusan
         </button>
       </div>
     </section>
@@ -194,7 +194,7 @@
         </button>
       </div>
 
-      <!-- Kad Keputusan Mengikut Acara (Grid Responsif 1 hingga 4 lajur) -->
+      <!-- Kad Keputusan Mengikut Acara -->
       <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
     </section>
 
@@ -437,7 +437,7 @@
         sports.map(s => `<option value="${s.name}" ${s.name === curr ? 'selected' : ''}>${s.name}</option>`).join("");
     }
 
-    // --- LOGIK CABUTAN RAWAK YANG TELAH DIBETULKAN SEPENUHNYA ---
+    // --- LOGIK CABUTAN RAWAK (SATU DEMI SATU DENGAN SOKONGAN SIMPAN TEPAT) ---
     async function mulakanCabutan() {
       if (!isAdmin) return alert("Hanya urusetia dibenarkan membuat undian.");
       const sportName = document.getElementById("selectActiveSport").value.trim();
@@ -454,7 +454,7 @@
         targetGroupNames.push(groupCount === 1 ? "Liga Kumpulan" : `Kumpulan ${String.fromCharCode(65 + i)}`);
       }
 
-      // 2. Pastikan objek sukan mempunyai kesemua kumpulan sedia ada
+      // 2. Pastikan struktur objek sukan wujud
       if (!tournamentDraws[sportName]) {
         tournamentDraws[sportName] = {};
       }
@@ -475,7 +475,7 @@
         return alert(`Semua ${teams.length} pasukan telah selesai diundi bagi sukan ${sportName}!`);
       }
 
-      // 4. Had maksimum pasukan bagi setiap kumpulan
+      // 4. Had kuota per kumpulan
       const maxPerGroup = Math.ceil(teams.length / groupCount);
 
       // 5. Cari kumpulan yang belum penuh dan susun ikut bilangan terendah
@@ -514,7 +514,7 @@
         label.textContent = `BERJAYA DIMASUKKAN KE ${targetGroup.toUpperCase()}!`;
 
         renderResults();
-        await hantarKeSheets();
+        await simpanSatuSukanKeSheets(sportName);
         btn.disabled = false;
       }, 2000);
     }
@@ -542,7 +542,7 @@
       });
 
       renderResults();
-      await hantarKeSheets();
+      await simpanSatuSukanKeSheets(sportName);
     }
 
     // --- PAPARAN KEPUTUSAN KUMPULAN ---
@@ -605,31 +605,30 @@
       }).join("");
     }
 
-    // --- INTEGRASI GOOGLE SHEETS ---
-    async function hantarKeSheets() {
+    // --- INTEGRASI GOOGLE SHEETS: HANYA HANTAR SUKAN YANG DIUNDI (DATA SUKAN LAIN KEKAL SELAMAT) ---
+    async function simpanSatuSukanKeSheets(sportName) {
       const sync = document.getElementById("syncText");
       sync.textContent = "Menyimpan ke Sheets...";
-      const list = [];
-      Object.keys(tournamentDraws).forEach(sport => {
-        Object.keys(tournamentDraws[sport]).forEach(grp => {
-          tournamentDraws[sport][grp].forEach(team => {
-            list.push({ sport: sport, group: grp, team: team });
+      
+      const sportResults = [];
+      if (tournamentDraws[sportName]) {
+        Object.keys(tournamentDraws[sportName]).forEach(grp => {
+          tournamentDraws[sportName][grp].forEach(team => {
+            sportResults.push({ sport: sportName, group: grp, team: team });
           });
         });
-      });
+      }
 
       try {
         await fetch(SCRIPT_URL, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "reset" })
-        });
-        await fetch(SCRIPT_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "saveResults", results: list })
+          body: JSON.stringify({
+            action: "saveSportResults",
+            sportName: sportName,
+            results: sportResults
+          })
         });
         sync.textContent = "Live Sync Aktif";
       } catch (e) {
@@ -668,14 +667,14 @@
 
     async function padamDataSemua() {
       if (!isAdmin) return;
-      if (!confirm("Adakah anda pasti mahu memadam semua keputusan undian? Acara sukan tidak akan terpadam.")) return;
+      if (!confirm("Amaran: Adakah anda pasti mahu memadam SEMUA keputusan undian bagi setiap sukan?")) return;
       tournamentDraws = {};
       renderResults();
       await fetch(SCRIPT_URL, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reset" })
+        body: JSON.stringify({ action: "resetAll" })
       });
     }
   </script>
