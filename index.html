@@ -463,13 +463,15 @@
     // --- LOGIK CABUTAN RAWAK ---
     async function mulakanCabutan() {
       if (!isAdmin) return alert("Hanya urusetia dibenarkan membuat undian.");
-      const sportName = document.getElementById("selectActiveSport").value;
+      const sportName = document.getElementById("selectActiveSport").value.trim();
       if (!sportName) return alert("Sila pilih sukan terlebih dahulu!");
       if (teams.length < 2) return alert("Masukkan sekurang-kurangnya 2 pasukan!");
 
-      const sportObj = sports.find(s => s.name === sportName) || { groupCount: 1 };
-      const groupCount = sportObj.groupCount;
+      // Cari tetapan sukan dengan semakan tepat
+      const sportObj = sports.find(s => s.name.trim().toLowerCase() === sportName.toLowerCase());
+      const groupCount = sportObj ? (parseInt(sportObj.groupCount) || 1) : 2;
 
+      // Inisialisasi kumpulan jika belum ada
       if (!tournamentDraws[sportName]) {
         tournamentDraws[sportName] = {};
         for (let i = 0; i < groupCount; i++) {
@@ -478,15 +480,30 @@
         }
       }
 
+      // Senaraikan pasukan yang telah diundi dan yang berbaki
       const drawn = Object.values(tournamentDraws[sportName]).flat();
       const remaining = teams.filter(t => !drawn.includes(t));
 
-      if (remaining.length === 0) return alert(`Semua pasukan telah lengkap diundi bagi sukan ${sportName}!`);
+      if (remaining.length === 0) {
+        return alert(`Semua pasukan telah lengkap diundi bagi sukan ${sportName}!`);
+      }
 
+      // Tentukan kuota maksimum bagi setiap kumpulan (cth: 4 pasukan / 2 kumpulan = 2 setiap kumpulan)
+      const maxPerGroup = Math.ceil(teams.length / groupCount);
+
+      // Cari kumpulan yang masih belum penuh (mengutamakan kumpulan paling sedikit ahli)
       const groupKeys = Object.keys(tournamentDraws[sportName]);
-      groupKeys.sort((a, b) => tournamentDraws[sportName][a].length - tournamentDraws[sportName][b].length);
-      const targetGroup = groupKeys[0];
+      const availableGroups = groupKeys.filter(g => tournamentDraws[sportName][g].length < maxPerGroup);
 
+      if (availableGroups.length === 0) {
+        return alert(`Semua kumpulan bagi sukan ${sportName} telah penuh!`);
+      }
+
+      // Susun kumpulan mengikut bilangan paling sikit
+      availableGroups.sort((a, b) => tournamentDraws[sportName][a].length - tournamentDraws[sportName][b].length);
+      const targetGroup = availableGroups[0];
+
+      // Animasi cabutan
       const box = document.getElementById("lotteryBox");
       const label = document.getElementById("drawStatusLabel");
       const display = document.getElementById("drawDisplay");
@@ -503,6 +520,8 @@
       setTimeout(async () => {
         clearInterval(timer);
         box.classList.remove("slot-rolling", "border-amber-400");
+        
+        // Cabut pasukan secara rawak tulen
         const chosen = remaining[Math.floor(Math.random() * remaining.length)];
         tournamentDraws[sportName][targetGroup].push(chosen);
 
