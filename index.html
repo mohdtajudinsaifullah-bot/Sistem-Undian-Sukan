@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Background Poster JKSM dengan lapisan gelap tembus pandang */
+    /* Background Poster JKSM dengan lapisan jelas */
     body {
       background-color: #0b132b;
       background-image: 
@@ -19,7 +19,7 @@
       background-repeat: no-repeat;
     }
 
-    /* Kad Lut Sinar (Glassmorphism) yang lembut agar poster nampak berseri */
+    /* Kad Lut Sinar (Glassmorphism) */
     .glass-card {
       background: rgba(10, 20, 40, 0.45) !important;
       backdrop-filter: blur(6px);
@@ -58,13 +58,11 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- Status Sync -->
         <div class="hidden sm:flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-300">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span id="syncText">Live Sync Aktif</span>
         </div>
 
-        <!-- Butang Login Urusetia -->
         <button id="btnLogin" onclick="bukaModalLogin()" class="text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1.5">
           <i class="fa-solid fa-lock"></i> Log Masuk Urusetia
         </button>
@@ -79,7 +77,7 @@
   <!-- Kandungan Utama -->
   <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
-    <!-- 1. DUA PANEL URUSETIA: Senarai Pasukan & Acara Sukan (DISEMBUNYIKAN UNTUK ATLET) -->
+    <!-- 1. DUA PANEL URUSETIA -->
     <div id="urusetiaOnlySection" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
       
       <!-- Panel 1: Senarai Pasukan -->
@@ -129,7 +127,7 @@
 
     </div>
 
-    <!-- 2. PENTAS CABUTAN (Dilihat oleh Semua, tapi Butang Terkunci untuk Atlet) -->
+    <!-- 2. PENTAS CABUTAN -->
     <section class="glass-card rounded-2xl p-6 shadow-2xl">
       <div class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-800 pb-3">
         <div>
@@ -139,7 +137,6 @@
           <p class="text-xs text-slate-400">Pancaran cabutan rasmi untuk tontonan atlet & kontinjen.</p>
         </div>
 
-        <!-- Pemilih Sukan yang Aktif -->
         <div class="w-full sm:w-72">
           <select id="selectActiveSport" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-400 font-medium">
             <option value="">-- Sila Pilih Acara Sukan --</option>
@@ -147,7 +144,7 @@
         </div>
       </div>
 
-      <!-- Kotak Paparan Cabutan (Shuffle Box) -->
+      <!-- Kotak Paparan Cabutan -->
       <div id="lotteryBox" class="bg-slate-950/80 border border-slate-800 rounded-2xl p-6 text-center my-4 transition">
         <div id="drawStatusLabel" class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-1">
           MENUNGGU CABUTAN BERMULA
@@ -157,7 +154,7 @@
         </div>
       </div>
 
-      <!-- BUTANG UNDIAN: Hanya boleh diklik jika Admin Log Masuk -->
+      <!-- BUTANG UNDIAN -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
         <button id="btnStartDraw" onclick="mulakanCabutan()" disabled 
                 class="sm:col-span-2 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-lg">
@@ -181,7 +178,7 @@
       </div>
     </section>
 
-    <!-- 3. KEPUTUSAN RASMI KUMPULAN (Tontonan Terbuka) -->
+    <!-- 3. KEPUTUSAN RASMI KUMPULAN -->
     <section class="glass-card rounded-2xl p-6 shadow-2xl">
       <div class="flex flex-wrap items-center justify-between pb-4 mb-6 border-b border-slate-800 gap-3">
         <div>
@@ -198,12 +195,7 @@
       </div>
 
       <!-- Kad Keputusan Mengikut Acara -->
-      <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="col-span-full text-center py-12 text-slate-500 text-sm">
-          <i class="fa-solid fa-spinner fa-spin text-2xl mb-3 text-amber-400"></i>
-          <p>Memuatkan data terkini dari Google Sheets...</p>
-        </div>
-      </div>
+      <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </section>
 
   </main>
@@ -243,7 +235,6 @@
     let tournamentDraws = {};
 
     document.addEventListener("DOMContentLoaded", async () => {
-      // 1. Semak sesi log masuk urusetia
       const savedEmail = localStorage.getItem("jksm_admin_email");
       if (savedEmail) {
         checkAdminBackend(savedEmail, false);
@@ -252,13 +243,9 @@
       }
 
       renderTeams();
-
-      // 2. Tarik senarai acara rasmi dari Sheet "Acara"
       await tarikAcaraDariSheets();
-
-      // 3. Tarik keputusan undian dari Sheet "Keputusan"
       await tarikDataTerkini();
-      setInterval(tarikDataTerkini, 4000);
+      setInterval(tarikDataTerkini, 5000);
     });
 
     // --- FUNGSI AMBIL & SIMPAN ACARA KE GOOGLE SHEETS ---
@@ -269,7 +256,6 @@
         if (Array.isArray(data) && data.length > 0) {
           sports = data;
         } else if (sports.length === 0) {
-          // Senarai lalai jika helaian kosong
           sports = [
             { id: "s1", name: "Menembak", groupCount: 1 },
             { id: "s2", name: "Golf", groupCount: 1 },
@@ -284,6 +270,7 @@
       }
       renderSports();
       renderActiveSportDropdown();
+      renderResults();
     }
 
     async function simpanAcaraKeSheets() {
@@ -428,6 +415,7 @@
       input.value = "";
       renderSports();
       renderActiveSportDropdown();
+      renderResults();
       await simpanAcaraKeSheets();
     }
 
@@ -436,6 +424,7 @@
       sports = sports.filter(s => s.id !== id);
       renderSports();
       renderActiveSportDropdown();
+      renderResults();
       await simpanAcaraKeSheets();
     }
 
@@ -460,18 +449,16 @@
         sports.map(s => `<option value="${s.name}" ${s.name === curr ? 'selected' : ''}>${s.name}</option>`).join("");
     }
 
-    // --- LOGIK CABUTAN RAWAK ---
+    // --- LOGIK CABUTAN RAWAK (SATU DEMI SATU) ---
     async function mulakanCabutan() {
       if (!isAdmin) return alert("Hanya urusetia dibenarkan membuat undian.");
       const sportName = document.getElementById("selectActiveSport").value.trim();
       if (!sportName) return alert("Sila pilih sukan terlebih dahulu!");
       if (teams.length < 2) return alert("Masukkan sekurang-kurangnya 2 pasukan!");
 
-      // Cari tetapan sukan dengan semakan tepat
       const sportObj = sports.find(s => s.name.trim().toLowerCase() === sportName.toLowerCase());
-      const groupCount = sportObj ? (parseInt(sportObj.groupCount) || 1) : 2;
+      const groupCount = sportObj ? (parseInt(sportObj.groupCount) || 1) : 1;
 
-      // Inisialisasi kumpulan jika belum ada
       if (!tournamentDraws[sportName]) {
         tournamentDraws[sportName] = {};
         for (let i = 0; i < groupCount; i++) {
@@ -480,7 +467,6 @@
         }
       }
 
-      // Senaraikan pasukan yang telah diundi dan yang berbaki
       const drawn = Object.values(tournamentDraws[sportName]).flat();
       const remaining = teams.filter(t => !drawn.includes(t));
 
@@ -488,10 +474,8 @@
         return alert(`Semua pasukan telah lengkap diundi bagi sukan ${sportName}!`);
       }
 
-      // Tentukan kuota maksimum bagi setiap kumpulan (cth: 4 pasukan / 2 kumpulan = 2 setiap kumpulan)
+      // Had kuota per kumpulan
       const maxPerGroup = Math.ceil(teams.length / groupCount);
-
-      // Cari kumpulan yang masih belum penuh (mengutamakan kumpulan paling sedikit ahli)
       const groupKeys = Object.keys(tournamentDraws[sportName]);
       const availableGroups = groupKeys.filter(g => tournamentDraws[sportName][g].length < maxPerGroup);
 
@@ -499,11 +483,10 @@
         return alert(`Semua kumpulan bagi sukan ${sportName} telah penuh!`);
       }
 
-      // Susun kumpulan mengikut bilangan paling sikit
+      // Susun kumpulan daripada yang paling sedikit pasukan
       availableGroups.sort((a, b) => tournamentDraws[sportName][a].length - tournamentDraws[sportName][b].length);
       const targetGroup = availableGroups[0];
 
-      // Animasi cabutan
       const box = document.getElementById("lotteryBox");
       const label = document.getElementById("drawStatusLabel");
       const display = document.getElementById("drawDisplay");
@@ -521,7 +504,6 @@
         clearInterval(timer);
         box.classList.remove("slot-rolling", "border-amber-400");
         
-        // Cabut pasukan secara rawak tulen
         const chosen = remaining[Math.floor(Math.random() * remaining.length)];
         tournamentDraws[sportName][targetGroup].push(chosen);
 
@@ -534,13 +516,14 @@
       }, 2000);
     }
 
+    // --- UNDI SUKAN TERUS (SERENTAK) ---
     async function undiSemuaSekaligus() {
       if (!isAdmin) return;
-      const sportName = document.getElementById("selectActiveSport").value;
+      const sportName = document.getElementById("selectActiveSport").value.trim();
       if (!sportName) return alert("Pilih sukan dahulu!");
 
-      const sportObj = sports.find(s => s.name === sportName) || { groupCount: 1 };
-      const groupCount = sportObj.groupCount;
+      const sportObj = sports.find(s => s.name.trim().toLowerCase() === sportName.toLowerCase());
+      const groupCount = sportObj ? (parseInt(sportObj.groupCount) || 1) : 1;
 
       tournamentDraws[sportName] = {};
       for (let i = 0; i < groupCount; i++) {
@@ -562,45 +545,57 @@
     // --- PAPARAN KEPUTUSAN KUMPULAN ---
     function renderResults() {
       const container = document.getElementById("resultsContainer");
-      const sportKeys = Object.keys(tournamentDraws);
 
-      if (sportKeys.length === 0) {
+      if (!sports || sports.length === 0) {
         container.innerHTML = `
-          <div class="col-span-full text-center py-12 text-slate-500 text-sm">
-            <i class="fa-solid fa-hourglass-start text-3xl mb-3 text-slate-600"></i>
-            <p>Belum ada cabutan undian dijalankan.</p>
+          <div class="col-span-full text-center py-12 text-slate-300 text-sm glass-card rounded-2xl">
+            <i class="fa-solid fa-clipboard-list text-3xl mb-3 text-amber-400"></i>
+            <p>Sila tambah acara sukan terlebih dahulu di bahagian Urusetia.</p>
           </div>
         `;
         return;
       }
 
-      container.innerHTML = sportKeys.map(sName => {
-        const groups = tournamentDraws[sName];
-        return `
-          <div class="glass-card rounded-2xl p-5 shadow-xl border border-slate-800 flex flex-col justify-between">
-            <div>
-              <div class="text-xs font-black text-amber-400 mb-3 uppercase tracking-wider flex items-center justify-between border-b border-slate-800 pb-2">
-                <span><i class="fa-solid fa-trophy mr-1.5 text-xs text-amber-300"></i> ${sName}</span>
+      container.innerHTML = sports.map(s => {
+        const sportName = s.name;
+        const groupCount = s.groupCount || 1;
+        const existingData = tournamentDraws[sportName] || {};
+
+        let groupHtml = "";
+        for (let i = 0; i < groupCount; i++) {
+          const grpName = groupCount === 1 ? "Liga Kumpulan" : `Kumpulan ${String.fromCharCode(65 + i)}`;
+          const teamList = existingData[grpName] || [];
+
+          groupHtml += `
+            <div class="mb-3 last:mb-0">
+              <div class="text-[11px] font-bold text-amber-300/90 mb-1 flex items-center justify-between">
+                <span>${grpName}</span>
+                <span class="text-[10px] bg-slate-900/80 px-2 py-0.5 rounded text-slate-300">${teamList.length} Pasukan</span>
               </div>
-              <div class="space-y-3">
-                ${Object.keys(groups).map(grp => `
-                  <div>
-                    <div class="text-[11px] font-bold text-slate-400 mb-1 flex items-center justify-between">
-                      <span>${grp}</span>
-                      <span class="text-[10px] text-slate-500">${groups[grp].length} Pasukan</span>
-                    </div>
-                    <ul class="space-y-1">
-                      ${groups[grp].length === 0 ? `<li class="text-xs text-slate-600 italic px-2">Belum ada pasukan</li>` : ''}
-                      ${groups[grp].map((tm, idx) => `
-                        <li class="flex items-center gap-2 text-xs bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-slate-200">
-                          <span class="w-4 text-center font-bold text-amber-400">${idx + 1}.</span>
-                          <span class="font-medium">${tm}</span>
-                        </li>
-                      `).join("")}
-                    </ul>
-                  </div>
+              <ul class="space-y-1">
+                ${teamList.length === 0 ? `
+                  <li class="text-[11px] text-slate-400 italic px-3 py-1.5 bg-slate-950/40 rounded-lg border border-white/5">
+                    Belum dibuat undian
+                  </li>
+                ` : teamList.map((tm, idx) => `
+                  <li class="flex items-center gap-2 text-xs bg-slate-950/80 border border-slate-700/60 px-3 py-1.5 rounded-lg text-white font-medium shadow-sm">
+                    <span class="w-4 text-center font-bold text-amber-400">${idx + 1}.</span>
+                    <span>${tm}</span>
+                  </li>
                 `).join("")}
+              </ul>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="glass-card rounded-2xl p-5 shadow-xl border border-white/10 flex flex-col justify-between">
+            <div>
+              <div class="text-xs font-black text-amber-400 mb-3 uppercase tracking-wider flex items-center justify-between border-b border-white/10 pb-2">
+                <span><i class="fa-solid fa-trophy mr-1.5 text-xs text-amber-300"></i> ${sportName}</span>
+                <span class="text-[10px] text-slate-300 font-semibold">${groupCount > 1 ? groupCount + ' Kumpulan' : 'Format Liga'}</span>
               </div>
+              <div>${groupHtml}</div>
             </div>
           </div>
         `;
@@ -645,13 +640,17 @@
         const data = await res.json();
         
         const newDraws = {};
-        data.forEach(item => {
-          if (!newDraws[item.sport]) newDraws[item.sport] = {};
-          if (!newDraws[item.sport][item.group]) newDraws[item.sport][item.group] = [];
-          if (!newDraws[item.sport][item.group].includes(item.team)) {
-            newDraws[item.sport][item.group].push(item.team);
-          }
-        });
+        if (Array.isArray(data)) {
+          data.forEach(item => {
+            if (item.sport && item.group && item.team) {
+              if (!newDraws[item.sport]) newDraws[item.sport] = {};
+              if (!newDraws[item.sport][item.group]) newDraws[item.sport][item.group] = [];
+              if (!newDraws[item.sport][item.group].includes(item.team)) {
+                newDraws[item.sport][item.group].push(item.team);
+              }
+            }
+          });
+        }
 
         if (JSON.stringify(newDraws) !== JSON.stringify(tournamentDraws)) {
           tournamentDraws = newDraws;
