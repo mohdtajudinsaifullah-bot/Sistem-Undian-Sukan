@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Background Poster JKSM dengan lapisan jelas */
+    /* Latar Belakang Poster JKSM */
     body {
       background-color: #0b132b;
       background-image: 
@@ -21,10 +21,10 @@
 
     /* Kad Lut Sinar (Glassmorphism) */
     .glass-card {
-      background: rgba(10, 20, 40, 0.45) !important;
+      background: rgba(10, 20, 40, 0.55) !important;
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
-      border: 1px solid rgba(255, 255, 255, 0.20);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.30);
     }
 
@@ -41,7 +41,7 @@
 
   <!-- Header Rasmi JKSM -->
   <header class="glass-card border-b border-slate-800/80 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="max-w-[96%] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black shadow-lg">
           <i class="fa-solid fa-trophy"></i>
@@ -74,8 +74,8 @@
     </div>
   </header>
 
-  <!-- Kandungan Utama -->
-  <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+  <!-- Kandungan Utama (Dilebarkan untuk menampung grid acara) -->
+  <main class="max-w-[96%] mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
     <!-- 1. DUA PANEL URUSETIA -->
     <div id="urusetiaOnlySection" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -157,12 +157,12 @@
       <!-- BUTANG UNDIAN -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
         <button id="btnStartDraw" onclick="mulakanCabutan()" disabled 
-                class="sm:col-span-2 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-lg">
+                class="sm:col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-lg">
           <i class="fa-solid fa-play"></i> Mulakan Cabutan Rawak
         </button>
 
         <button id="btnQuickDraw" onclick="undiSemuaSekaligus()" disabled 
-                class="bg-slate-800 text-slate-300 py-3 rounded-xl text-xs font-bold border border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                class="bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-xl text-xs font-bold border border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
           <i class="fa-solid fa-forward-fast mr-1"></i> Undi Sukan Ini Terus
         </button>
       </div>
@@ -194,8 +194,8 @@
         </button>
       </div>
 
-      <!-- Kad Keputusan Mengikut Acara -->
-      <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <!-- Kad Keputusan Mengikut Acara (Grid Responsif 1 hingga 4 lajur) -->
+      <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
     </section>
 
   </main>
@@ -255,18 +255,9 @@
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           sports = data;
-        } else if (sports.length === 0) {
-          sports = [
-            { id: "s1", name: "Menembak", groupCount: 1 },
-            { id: "s2", name: "Golf", groupCount: 1 },
-            { id: "s3", name: "Memanah Lelaki", groupCount: 1 },
-            { id: "s4", name: "Memanah Wanita", groupCount: 1 },
-            { id: "s5", name: "Bowling Lelaki", groupCount: 1 },
-            { id: "s6", name: "Bowling Wanita", groupCount: 1 }
-          ];
         }
       } catch (e) {
-        console.log("Menggunakan senarai acara tempatan.");
+        console.log("Ralat tarik acara:", e);
       }
       renderSports();
       renderActiveSportDropdown();
@@ -298,14 +289,11 @@
     async function sahkanAdmin() {
       const email = document.getElementById("inputAdminEmail").value.trim();
       const btn = document.getElementById("btnVerifyEmail");
-      const err = document.getElementById("loginErrorMsg");
-
       if (!email) return;
+
       btn.textContent = "Menyemak...";
       btn.disabled = true;
-
       await checkAdminBackend(email, true);
-
       btn.textContent = "Sahkan & Log Masuk";
       btn.disabled = false;
     }
@@ -449,44 +437,58 @@
         sports.map(s => `<option value="${s.name}" ${s.name === curr ? 'selected' : ''}>${s.name}</option>`).join("");
     }
 
-    // --- LOGIK CABUTAN RAWAK (SATU DEMI SATU) ---
+    // --- LOGIK CABUTAN RAWAK YANG TELAH DIBETULKAN SEPENUHNYA ---
     async function mulakanCabutan() {
       if (!isAdmin) return alert("Hanya urusetia dibenarkan membuat undian.");
       const sportName = document.getElementById("selectActiveSport").value.trim();
       if (!sportName) return alert("Sila pilih sukan terlebih dahulu!");
       if (teams.length < 2) return alert("Masukkan sekurang-kurangnya 2 pasukan!");
 
+      // Cari tetapan bilangan kumpulan bagi sukan ini
       const sportObj = sports.find(s => s.name.trim().toLowerCase() === sportName.toLowerCase());
       const groupCount = sportObj ? (parseInt(sportObj.groupCount) || 1) : 1;
 
+      // 1. Bina senarai nama kumpulan rasmi
+      const targetGroupNames = [];
+      for (let i = 0; i < groupCount; i++) {
+        targetGroupNames.push(groupCount === 1 ? "Liga Kumpulan" : `Kumpulan ${String.fromCharCode(65 + i)}`);
+      }
+
+      // 2. Pastikan objek sukan mempunyai kesemua kumpulan sedia ada
       if (!tournamentDraws[sportName]) {
         tournamentDraws[sportName] = {};
-        for (let i = 0; i < groupCount; i++) {
-          const gName = groupCount === 1 ? "Liga Kumpulan" : `Kumpulan ${String.fromCharCode(65 + i)}`;
-          tournamentDraws[sportName][gName] = [];
+      }
+      targetGroupNames.forEach(g => {
+        if (!tournamentDraws[sportName][g]) {
+          tournamentDraws[sportName][g] = [];
         }
+      });
+
+      // 3. Semak pasukan yang telah diundi & yang masih berbaki
+      const drawnTeams = [];
+      targetGroupNames.forEach(g => {
+        drawnTeams.push(...tournamentDraws[sportName][g]);
+      });
+      const remainingTeams = teams.filter(t => !drawnTeams.includes(t));
+
+      if (remainingTeams.length === 0) {
+        return alert(`Semua ${teams.length} pasukan telah selesai diundi bagi sukan ${sportName}!`);
       }
 
-      const drawn = Object.values(tournamentDraws[sportName]).flat();
-      const remaining = teams.filter(t => !drawn.includes(t));
-
-      if (remaining.length === 0) {
-        return alert(`Semua pasukan telah lengkap diundi bagi sukan ${sportName}!`);
-      }
-
-      // Had kuota per kumpulan
+      // 4. Had maksimum pasukan bagi setiap kumpulan
       const maxPerGroup = Math.ceil(teams.length / groupCount);
-      const groupKeys = Object.keys(tournamentDraws[sportName]);
-      const availableGroups = groupKeys.filter(g => tournamentDraws[sportName][g].length < maxPerGroup);
+
+      // 5. Cari kumpulan yang belum penuh dan susun ikut bilangan terendah
+      const availableGroups = targetGroupNames.filter(g => tournamentDraws[sportName][g].length < maxPerGroup);
 
       if (availableGroups.length === 0) {
         return alert(`Semua kumpulan bagi sukan ${sportName} telah penuh!`);
       }
 
-      // Susun kumpulan daripada yang paling sedikit pasukan
       availableGroups.sort((a, b) => tournamentDraws[sportName][a].length - tournamentDraws[sportName][b].length);
       const targetGroup = availableGroups[0];
 
+      // 6. Animasi Cabutan
       const box = document.getElementById("lotteryBox");
       const label = document.getElementById("drawStatusLabel");
       const display = document.getElementById("drawDisplay");
@@ -497,14 +499,15 @@
       label.textContent = `MENCABUT UNTUK ${targetGroup.toUpperCase()}...`;
 
       let timer = setInterval(() => {
-        display.textContent = remaining[Math.floor(Math.random() * remaining.length)];
+        display.textContent = remainingTeams[Math.floor(Math.random() * remainingTeams.length)];
       }, 70);
 
       setTimeout(async () => {
         clearInterval(timer);
         box.classList.remove("slot-rolling", "border-amber-400");
         
-        const chosen = remaining[Math.floor(Math.random() * remaining.length)];
+        // Pilih pasukan rawak
+        const chosen = remainingTeams[Math.floor(Math.random() * remainingTeams.length)];
         tournamentDraws[sportName][targetGroup].push(chosen);
 
         display.textContent = `🎯 ${chosen}`;
@@ -516,7 +519,7 @@
       }, 2000);
     }
 
-    // --- UNDI SUKAN TERUS (SERENTAK) ---
+    // --- UNDI SUKAN INI TERUS ---
     async function undiSemuaSekaligus() {
       if (!isAdmin) return;
       const sportName = document.getElementById("selectActiveSport").value.trim();
@@ -525,17 +528,17 @@
       const sportObj = sports.find(s => s.name.trim().toLowerCase() === sportName.toLowerCase());
       const groupCount = sportObj ? (parseInt(sportObj.groupCount) || 1) : 1;
 
-      tournamentDraws[sportName] = {};
+      const groupNames = [];
       for (let i = 0; i < groupCount; i++) {
-        const gName = groupCount === 1 ? "Liga Kumpulan" : `Kumpulan ${String.fromCharCode(65 + i)}`;
-        tournamentDraws[sportName][gName] = [];
+        groupNames.push(groupCount === 1 ? "Liga Kumpulan" : `Kumpulan ${String.fromCharCode(65 + i)}`);
       }
 
-      const shuffled = [...teams].sort(() => Math.random() - 0.5);
-      const groupKeys = Object.keys(tournamentDraws[sportName]);
+      tournamentDraws[sportName] = {};
+      groupNames.forEach(g => tournamentDraws[sportName][g] = []);
 
+      const shuffled = [...teams].sort(() => Math.random() - 0.5);
       shuffled.forEach((tm, idx) => {
-        tournamentDraws[sportName][groupKeys[idx % groupKeys.length]].push(tm);
+        tournamentDraws[sportName][groupNames[idx % groupNames.length]].push(tm);
       });
 
       renderResults();
@@ -589,11 +592,11 @@
         }
 
         return `
-          <div class="glass-card rounded-2xl p-5 shadow-xl border border-white/10 flex flex-col justify-between">
+          <div class="glass-card rounded-2xl p-4 shadow-xl border border-white/10 flex flex-col justify-between">
             <div>
               <div class="text-xs font-black text-amber-400 mb-3 uppercase tracking-wider flex items-center justify-between border-b border-white/10 pb-2">
                 <span><i class="fa-solid fa-trophy mr-1.5 text-xs text-amber-300"></i> ${sportName}</span>
-                <span class="text-[10px] text-slate-300 font-semibold">${groupCount > 1 ? groupCount + ' Kumpulan' : 'Format Liga'}</span>
+                <span class="text-[10px] text-slate-300 font-semibold">${groupCount > 1 ? groupCount + ' Kumpulan' : 'Liga'}</span>
               </div>
               <div>${groupHtml}</div>
             </div>
@@ -602,7 +605,7 @@
       }).join("");
     }
 
-    // --- INTEGRASI GOOGLE SHEETS UNTUK UNDIAN ---
+    // --- INTEGRASI GOOGLE SHEETS ---
     async function hantarKeSheets() {
       const sync = document.getElementById("syncText");
       sync.textContent = "Menyimpan ke Sheets...";
@@ -643,10 +646,14 @@
         if (Array.isArray(data)) {
           data.forEach(item => {
             if (item.sport && item.group && item.team) {
-              if (!newDraws[item.sport]) newDraws[item.sport] = {};
-              if (!newDraws[item.sport][item.group]) newDraws[item.sport][item.group] = [];
-              if (!newDraws[item.sport][item.group].includes(item.team)) {
-                newDraws[item.sport][item.group].push(item.team);
+              const sp = item.sport.toString().trim();
+              const gr = item.group.toString().trim();
+              const tm = item.team.toString().trim();
+
+              if (!newDraws[sp]) newDraws[sp] = {};
+              if (!newDraws[sp][gr]) newDraws[sp][gr] = [];
+              if (!newDraws[sp][gr].includes(tm)) {
+                newDraws[sp][gr].push(tm);
               }
             }
           });
